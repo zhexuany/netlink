@@ -61,7 +61,7 @@ func (op *ProcCnMcastOp) Len() int {
 	return SizeofProcCnMcastOp
 }
 
-type ProcEventType int32
+type ProcEventType uint32
 
 const (
 	PROC_EVENT_NONE     = 0x00000000
@@ -95,16 +95,77 @@ type ProcEventFork struct {
 	ChildTgid  int32
 }
 
-func parseProcEventFork(data []byte) *ProcEventFork {
-	f := (*ProcEventFork)(unsafe.Pointer(&data[0]))
-	return f
+type ProcEventExec struct {
+	ProcessPid  int32
+	ProcessTgid int32
+}
+
+type ProcEventUid struct {
+	ProcessPid  int32
+	ProcessTgid int32
+	RUid        uint32
+	EUid        uint32
+}
+
+type ProcEventGid struct {
+	ProcessPid  int32
+	ProcessTgid int32
+	RGid        uint32
+	EGid        uint32
+}
+
+type ProcEventExit struct {
+	ProcessPid  int32
+	ProcessTgid int32
+	ExitCode    uint32
+}
+
+type ProcEventCoreDump struct {
+	ProcessPid  int32
+	ProcessTgid int32
+}
+
+type ProcEventComm struct {
+	ProcessPid  int32
+	ProcessTgid int32
+	Comm        [16]byte
+}
+
+type ProcEventPtrace struct {
+	ProcessPid  int32
+	ProcessTgid int32
+	TracerPid   int32
+	TracerTgid  int32
+}
+
+type ProcEventSid struct {
+	ProcessPid  int32
+	ProcessTgid int32
 }
 
 func ParseProcEvent(data []byte) *ProcEvent {
 	pe := (*ProcEvent)(unsafe.Pointer(&data[SizeofCnMsg]))
 	switch pe.What {
+	case PROC_EVENT_NONE:
+		pe.Data = nil
 	case PROC_EVENT_FORK:
 		pe.Data = *(*ProcEventFork)(unsafe.Pointer(&data[SizeofCnMsg+SizeofProcEventHeader]))
+	case PROC_EVENT_EXEC:
+		pe.Data = *(*ProcEventExec)(unsafe.Pointer(&data[SizeofCnMsg+SizeofProcEventHeader]))
+	case PROC_EVENT_UID:
+		pe.Data = *(*ProcEventUid)(unsafe.Pointer(&data[SizeofCnMsg+SizeofProcEventHeader]))
+	case PROC_EVENT_GID:
+		pe.Data = *(*ProcEventGid)(unsafe.Pointer(&data[SizeofCnMsg+SizeofProcEventHeader]))
+	case PROC_EVENT_SID:
+		pe.Data = *(*ProcEventSid)(unsafe.Pointer(&data[SizeofCnMsg+SizeofProcEventHeader]))
+	case PROC_EVENT_PTRACE:
+		pe.Data = *(*ProcEventPtrace)(unsafe.Pointer(&data[SizeofCnMsg+SizeofProcEventHeader]))
+	case PROC_EVENT_COMM:
+		pe.Data = *(*ProcEventComm)(unsafe.Pointer(&data[SizeofCnMsg+SizeofProcEventHeader]))
+	case PROC_EVENT_COREDUMP:
+		pe.Data = *(*ProcEventCoreDump)(unsafe.Pointer(&data[SizeofCnMsg+SizeofProcEventHeader]))
+	case PROC_EVENT_EXIT:
+		pe.Data = *(*ProcEventExit)(unsafe.Pointer(&data[SizeofCnMsg+SizeofProcEventHeader]))
 	default:
 		pe.Data = nil
 	}
