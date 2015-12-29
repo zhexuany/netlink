@@ -14,6 +14,7 @@ const (
 	CN_VAL_PROC = 0x1
 )
 
+// linux/connector.h
 type CbId struct {
 	idx uint32
 	val uint32
@@ -79,6 +80,7 @@ const (
 type ProcEventData interface {
 }
 
+// linux/cn_proc.h
 type ProcEvent struct {
 	What      ProcEventType
 	Cpu       uint32

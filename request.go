@@ -11,6 +11,7 @@ type NetlinkRequestData interface {
 	Serialize() []byte
 }
 
+// linux/netlink.h
 type NetlinkRequest struct {
 	syscall.NlMsghdr
 	Data []NetlinkRequestData

@@ -15,7 +15,8 @@ const (
 
 type NetlinkSocket struct {
 	fd       int
-	sockaddr *syscall.SockaddrNetlink
+	protocol NetlinkProtocol
+	groups   uint32
 }
 
 func NewNetlinkSocket(protocol NetlinkProtocol, groups uint32) (*NetlinkSocket, error) {
@@ -24,16 +25,20 @@ func NewNetlinkSocket(protocol NetlinkProtocol, groups uint32) (*NetlinkSocket, 
 		return nil, err
 	}
 	ns := &NetlinkSocket{
-		fd: fd,
-		sockaddr: &syscall.SockaddrNetlink{
+		fd:       fd,
+		protocol: protocol,
+		groups:   groups,
+	}
+	if ns.protocol == CONNECTOR {
+		sockaddr := &syscall.SockaddrNetlink{
 			Family: syscall.AF_NETLINK,
 			Pid:    uint32(os.Getpid()),
 			Groups: groups,
-		},
-	}
-	if err = syscall.Bind(fd, ns.sockaddr); err != nil {
-		syscall.Close(fd)
-		return nil, err
+		}
+		if err = syscall.Bind(fd, sockaddr); err != nil {
+			syscall.Close(fd)
+			return nil, err
+		}
 	}
 	return ns, nil
 }
@@ -43,8 +48,19 @@ func (ns *NetlinkSocket) Close() {
 }
 
 func (ns *NetlinkSocket) Send(request *NetlinkRequest) error {
-	if _, err := syscall.Write(ns.fd, request.Serialize()); err != nil {
-		return err
+	if ns.protocol == CONNECTOR {
+		if _, err := syscall.Write(ns.fd, request.Serialize()); err != nil {
+			return err
+		}
+	} else {
+		sockaddr := &syscall.SockaddrNetlink{
+			Family: syscall.AF_NETLINK,
+			Pid:    0,
+			Groups: ns.groups,
+		}
+		if err := syscall.Sendto(ns.fd, request.Serialize(), 0, sockaddr); err != nil {
+			return err
+		}
 	}
 	return nil
 }
