@@ -55,23 +55,26 @@ var DiagFamilyMap = map[uint8]string{
 	syscall.AF_INET6: "tcp6",
 }
 
+type be16 [2]byte
+type be32 [4]byte
+
 // linux/inet_diag.h
 type InetDiagSockId struct {
-	IDiagSPort  uint16
-	IDiagDPort  uint16
-	IDiagSrc    [4]uint32
-	IDiagDst    [4]uint32
+	IDiagSPort  be16
+	IDiagDPort  be16
+	IDiagSrc    [4]be32
+	IDiagDst    [4]be32
 	IDiagIf     uint32
 	IDiagCookie [2]uint32
 }
 
 func (id *InetDiagSockId) SrcIPv4() net.IP {
-	srcip := (*[4]byte)(unsafe.Pointer(&id.IDiagSrc[0]))
+	srcip := id.IDiagSrc[0]
 	return net.IPv4(srcip[0], srcip[1], srcip[2], srcip[3])
 }
 
 func (id *InetDiagSockId) DstIPv4() net.IP {
-	dstip := (*[4]byte)(unsafe.Pointer(&id.IDiagDst[0]))
+	dstip := id.IDiagDst[0]
 	return net.IPv4(dstip[0], dstip[1], dstip[2], dstip[3])
 }
 
