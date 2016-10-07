@@ -78,6 +78,54 @@ func (id *InetDiagSockId) DstIPv4() net.IP {
 	return net.IPv4(dstip[0], dstip[1], dstip[2], dstip[3])
 }
 
+func ipv4ip(original be32) net.IP {
+	ip := make(net.IP, 4)
+	for i := 0; i < 4; i++ {
+		ip[i] = original[i]
+	}
+	return ip
+}
+
+func ipv6ip(original [4]be32) net.IP {
+	isIpv6 := false
+	for i := 1; i < 4; i++ {
+		for j := 0; j < 4; j++ {
+			isIpv6 = true
+		}
+	}
+
+
+	if isIpv6 {
+		return ipv4ip(original[0])
+	} else {
+		ip := make(net.IP, net.IPv6len)
+		for i := 0; i < 4; i++ {
+			for j := 0; j < 4; j++ {
+				ip[4*i+j] = original[i][j]
+			}
+		}
+		return ip
+	}
+}
+
+func ip(family uint8, bytes [4]be32) net.IP {
+	if family == syscall.AF_INET {
+		return ipv4ip(bytes[0])
+	} else if family == syscall.AF_INET6 {
+		return ipv6ip(bytes)
+	} else {
+		return nil
+	}
+}
+
+func (id *InetDiagSockId) SrcIp(family uint8) net.IP {
+	return ip(family, id.IDiagSrc)
+}
+
+func (id *InetDiagSockId) DstIp(family uint8) net.IP {
+	return ip(family, id.IDiagDst)
+}
+
 func (id *InetDiagSockId) String() string {
 	return fmt.Sprintf("%s:%d -> %s:%d", id.SrcIPv4().String(), id.IDiagSPort, id.DstIPv4().String(), id.IDiagDPort)
 }
