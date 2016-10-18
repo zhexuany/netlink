@@ -69,17 +69,64 @@ type InetDiagSockId struct {
 }
 
 func (id *InetDiagSockId) SrcIPv4() net.IP {
-	srcip := id.IDiagSrc[0]
-	return net.IPv4(srcip[0], srcip[1], srcip[2], srcip[3])
+	return ipv4(id.IDiagSrc[0])
 }
 
 func (id *InetDiagSockId) DstIPv4() net.IP {
-	dstip := id.IDiagDst[0]
-	return net.IPv4(dstip[0], dstip[1], dstip[2], dstip[3])
+	return ipv4(id.IDiagDst[0])
+}
+
+func (id *InetDiagSockId) SrcIPv6() net.IP {
+	return ipv6(id.IDiagSrc)
+}
+
+func (id *InetDiagSockId) DstIPv6() net.IP {
+	return ipv6(id.IDiagDst)
+}
+
+func (id *InetDiagSockId) SrcIP() net.IP {
+	return ip(id.IDiagSrc)
+}
+
+func (id *InetDiagSockId) DstIP() net.IP {
+	return ip(id.IDiagDst)
+}
+
+func ip(bytes [4]be32) net.IP {
+	if isIpv6(bytes) {
+		return ipv6(bytes)
+	} else {
+		return ipv4(bytes[0])
+	}
+}
+
+func isIpv6(original [4]be32) bool {
+	for i := 1; i < 4; i++ {
+		for j := 0; j < 4; j++ {
+			if original[i][j] != 0 {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func ipv4(original be32) net.IP {
+	return net.IPv4(original[0], original[1], original[2], original[3])
+}
+
+func ipv6(original [4]be32) net.IP {
+	ip := make(net.IP, net.IPv6len)
+	for i := 0; i < 4; i++ {
+		for j := 0; j < 4; j++ {
+			ip[4*i+j] = original[i][j]
+		}
+	}
+	return ip
 }
 
 func (id *InetDiagSockId) String() string {
-	return fmt.Sprintf("%s:%d -> %s:%d", id.SrcIPv4().String(), id.IDiagSPort, id.DstIPv4().String(), id.IDiagDPort)
+	return fmt.Sprintf("%s:%d -> %s:%d", id.SrcIP().String(), id.IDiagSPort, id.DstIP().String(), id.IDiagDPort)
 }
 
 type InetDiagReqV2 struct {
